@@ -1,0 +1,31 @@
+<section class="wallet-page">
+  <header class="page-head"><div><p class="eyebrow">Y2 WALLET</p><h1>Withdraw crypto</h1><p class="subhead">Requests are reviewed by an administrator before funds are sent.</p></div><a class="back-link" routerLink="../">← Wallet overview</a></header>
+  @if (loading()) { <div class="state-card" role="status">Loading withdrawal details…</div> }
+  @else {
+    <div class="withdraw-layout">
+      <div class="withdraw-card">
+        @if (success()) { <div class="notice success" role="status">{{ success() }} <a routerLink="../history">View wallet history</a></div> }
+        @if (error()) { <div class="notice error" role="alert">{{ error() }}</div> }
+        @if (!assets().length) { <div class="state-card">No enabled withdrawal networks are available.</div> }
+        @else if (stage() === 'edit') {
+          <div class="fields">
+            <label>Asset<select [formControl]="assetSymbol">@for (asset of assets(); track asset.symbol) { <option [value]="asset.symbol">{{ asset.name }} ({{ asset.symbol }})</option> }</select></label>
+            <label>Network<select [formControl]="networkId">@for (network of networks(); track network.id) { <option [value]="network.id">{{ network.code }}</option> }</select></label>
+            <div class="balance-line"><span>Available</span><b>{{ balance()?.available ?? '0' }} {{ assetSymbol.value }}</b></div>
+            <label>Destination address<input type="text" autocomplete="off" [formControl]="toAddress" placeholder="Enter the external address" /></label>
+            @if (selectedNetwork()?.memoRequired) { <label>Destination memo/tag · required<input type="text" autocomplete="off" [formControl]="memo" placeholder="Enter the memo or tag" /></label> }
+            <label>Amount<input type="text" inputmode="decimal" autocomplete="off" [formControl]="amount" placeholder="0.00" /></label>
+            <div class="fee-grid"><div><span>Minimum</span><b>{{ selectedNetwork()?.minWithdraw }} {{ assetSymbol.value }}</b></div><div><span>Network fee</span><b>{{ selectedNetwork()?.withdrawFee }} {{ assetSymbol.value }}</b></div><div><span>Amount sent</span><b>{{ netPreview() }} {{ assetSymbol.value }}</b></div></div>
+            <label>Authenticator code <small>Required when two-factor authentication is enabled.</small><input type="text" inputmode="numeric" maxlength="6" autocomplete="one-time-code" [formControl]="twoFactorCode" placeholder="6-digit code" /></label>
+          </div>
+          <button class="primary-action" type="button" (click)="review()">Review withdrawal</button>
+        } @else {
+          <div class="confirm-panel"><h2>Confirm withdrawal</h2><p>Send <b>{{ netPreview() }} {{ assetSymbol.value }}</b> to this destination?</p><div><span>Address</span><code>{{ toAddress.value }}</code></div>@if (selectedNetwork()?.memoRequired) { <div><span>Memo / tag</span><code>{{ memo.value }}</code></div> }<div><span>Total reserved</span><b>{{ amount.value }} {{ assetSymbol.value }}</b></div><div><span>Fee deducted</span><b>{{ selectedNetwork()?.withdrawFee }} {{ assetSymbol.value }}</b></div>
+            <div class="confirm-actions"><button type="button" class="secondary-action" [disabled]="busy()" (click)="stage.set('edit')">Back</button><button type="button" class="primary-action" [disabled]="busy()" (click)="submit()">{{ busy() ? 'Submitting…' : 'Submit withdrawal' }}</button></div></div>
+        }
+      </div>
+      <aside class="notice warning"><b>Check the destination carefully</b><p>Crypto transfers may be irreversible. Send only the selected asset on the selected network. The full requested amount is reserved while your request is reviewed.</p></aside>
+    </div>
+    <div class="history-block"><h2>Recent withdrawals</h2>@for (withdrawal of withdrawals(); track withdrawal.id) { <div class="withdraw-row"><div><b>{{ withdrawal.amount }} {{ withdrawal.assetSymbol }}</b><small>{{ withdrawal.networkCode }} · {{ withdrawal.toAddress }}</small></div><span class="status" [class.completed]="withdrawal.status === 'completed'">{{ withdrawal.status }}</span></div> } @empty { <div class="state-card">No withdrawal requests yet.</div> }</div>
+  }
+</section>

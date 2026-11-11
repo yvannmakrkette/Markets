@@ -1,0 +1,45 @@
+<section class="wallet-page">
+  <header class="page-head"><div><p class="eyebrow">Y2 WALLET</p><h1>Convert assets</h1><p class="subhead">Get a short-lived quote and confirm before it expires.</p></div><a class="back-link" routerLink="../">← Wallet overview</a></header>
+
+  @if (loading() && !assets().length) {
+    <div class="notice" role="status">Loading wallet assets and balances…</div>
+  } @else if (error() && !assets().length) {
+    <div class="notice error" role="alert"><b>Wallet data could not be loaded.</b><p>{{ error() }}</p><button class="secondary-action" type="button" (click)="loadAssets()">Try again</button></div>
+  } @else if (!heldAssets().length) {
+    <div class="notice" role="status">
+      <b>There is no available balance to convert yet.</b>
+      <p>First deposit a supported crypto asset and wait for it to appear in your wallet balance.</p>
+      <a class="primary-action" routerLink="../deposit">Go to deposits</a>
+    </div>
+  } @else if (!toOptions().length) {
+    <div class="notice" role="status">
+      <b>There is no second asset to convert to.</b>
+      <p>An administrator must enable another wallet asset before conversion is available.</p>
+      <a class="secondary-action" routerLink="../">Back to wallet</a>
+    </div>
+  } @else {
+    <div class="convert-card">
+      <div class="fields">
+        <label>From asset<select [formControl]="fromAsset" (change)="quote.set(null); toAsset.setValue(toOptions()[0]?.symbol ?? '')">@for (asset of heldAssets(); track asset.symbol) { <option [value]="asset.symbol">{{ asset.name }} ({{ asset.symbol }})</option> }</select></label>
+        <label>To asset<select [formControl]="toAsset">@for (asset of toOptions(); track asset.symbol) { <option [value]="asset.symbol">{{ asset.name }} ({{ asset.symbol }})</option> }</select></label>
+        <label class="amount-field">Amount<input type="text" inputmode="decimal" autocomplete="off" placeholder="0.00" [formControl]="amount" (input)="quote.set(null)" /></label>
+      </div>
+      @if (error()) { <div class="notice error" role="alert">{{ error() }}</div> }
+      @if (success()) { <div class="notice success" role="status">{{ success() }} <a routerLink="../history">View history</a></div> }
+      @if (quote(); as q) {
+        <div class="quote-panel" aria-live="polite">
+          <div class="quote-head"><strong>Quote</strong><span [class.expired]="!countdown()">{{ countdown() }}s remaining</span></div>
+          <div class="quote-line"><span>You convert</span><b>{{ q.fromAmount }} {{ q.fromAsset }}</b></div>
+          <div class="quote-line"><span>Estimated receive</span><b>{{ q.toAmount }} {{ q.toAsset }}</b></div>
+          <div class="quote-line muted"><span>Rate</span><span>1 {{ q.fromAsset }} = {{ q.rate }} {{ q.toAsset }}</span></div>
+          <div class="quote-line muted"><span>Spread</span><span>{{ q.spreadBps }} bps · {{ q.feeAmount }} {{ q.toAsset }}</span></div>
+          @if (!countdown()) { <button class="secondary-action" type="button" [disabled]="loading()" (click)="getQuote()">Get a fresh quote</button> }
+          <button class="primary-action" type="button" [disabled]="loading() || !countdown()" (click)="confirm()">{{ loading() ? 'Processing…' : 'Confirm conversion' }}</button>
+        </div>
+      } @else {
+        <button class="primary-action" type="button" [disabled]="loading() || !fromAsset.value || !toAsset.value || !amount.value.trim()" (click)="getQuote()">{{ loading() ? 'Getting quote…' : 'Get quote' }}</button>
+      }
+    </div>
+  }
+  <p class="fine-print">Conversion executes at the quoted rate only. Quotes expire quickly and can be used once.</p>
+</section>

@@ -12,6 +12,11 @@ const optionalStr = z
   .optional()
   .transform((v) => (v && v.trim() ? v.trim() : undefined));
 
+const waxAccount = optionalStr.refine(
+  (value) => value === undefined || (/^[a-z1-5.]{1,12}$/.test(value) && !value.endsWith('.')),
+  'WAX_DEPOSIT_ACCOUNT must be 1-12 characters using a-z, 1-5, and dots, with no trailing dot',
+);
+
 const schema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   PORT: z.coerce.number().default(4000),
@@ -24,9 +29,11 @@ const schema = z.object({
   COOKIE_SECURE: z.enum(['true', 'false', '']).optional(), // defaults to true when APP_URL is https
   OTC_SEED: z.string().default('dev-otc-seed'),
   BINANCE_ENABLED: bool(true),
-  BINANCE_WS_URL: z.string().default('wss://stream.binance.com:9443/stream'),
-  BINANCE_REST_URL: z.string().default('https://api.binance.com'),
-  TICK_RETENTION_DAYS: z.coerce.number().default(0),
+  // These official endpoints are for public market data (no account or trading API access).
+  BINANCE_WS_URL: z.string().default('wss://data-stream.binance.vision/stream'),
+  BINANCE_REST_URL: z.string().default('https://data-api.binance.vision'),
+  // Price ticks are short-lived market data; user trades and ledger history are kept separately.
+  TICK_RETENTION_DAYS: z.coerce.number().int().nonnegative().default(30),
   BREVO_API_KEY: optionalStr, // xkeysib-…: sends over Brevo's HTTPS API (preferred; works where SMTP ports are blocked)
   BREVO_API_URL: z.string().default('https://api.brevo.com'),
   SMTP_HOST: optionalStr,
@@ -59,6 +66,17 @@ const schema = z.object({
   ADMIN_PASSWORD: z.string().min(8).default('Admin@12345'),
   UPLOAD_DIR: z.string().default('uploads'),
   REQUIRE_KYC_FOR_WITHDRAWAL: bool(false),
+  // Exchange wallet. WAX deposits stay disabled until a valid shared account is configured.
+  WAX_HISTORY_API_URL: z.string().url().default('https://wax.hyperion.eosrio.io'),
+  WAX_DEPOSIT_ACCOUNT: waxAccount,
+  EVM_RPC_URL: optionalStr.refine((value) => value === undefined || /^https?:\/\//i.test(value), 'EVM_RPC_URL must be an HTTP(S) public RPC endpoint'),
+  EVM_START_BLOCK: z.coerce.number().int().nonnegative().default(0),
+  PRICE_API_URL: optionalStr.refine((value) => value === undefined || /^https?:\/\//i.test(value), 'PRICE_API_URL must be an HTTP(S) URL'),
+  PRICE_API_KEY: optionalStr,
+  WALLET_STATIC_RATES: z.string().default('{}'),
+  DEPOSIT_SCAN_INTERVAL_MS: z.coerce.number().int().positive().default(30000),
+  CONVERT_SPREAD_BPS: z.coerce.number().int().min(0).max(10000).default(50),
+  QUOTE_TTL_SECONDS: z.coerce.number().int().min(15).max(30).default(20),
 });
 
 const parsed = schema.safeParse(process.env);

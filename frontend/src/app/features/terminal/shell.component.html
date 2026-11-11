@@ -70,6 +70,10 @@
 @if (financeMenu()) {
   <div class="popover-backdrop" (click)="financeMenu.set(false)"></div>
   <div class="finance-pop anim-pop">
+    <button (click)="goFinance('/app/wallet')">
+      <app-icon name="wallet" [size]="20" />
+      <span>Crypto wallet</span>
+    </button>
     <button (click)="goFinance('/app/finance/deposit')">
       <app-icon name="download" [size]="20" />
       <span>Deposit</span>

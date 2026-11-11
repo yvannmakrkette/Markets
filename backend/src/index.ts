@@ -14,6 +14,8 @@ import { startDepositReconciler } from './finance/deposit.service';
 import { startSignalEngine } from './signals/signal.engine';
 import { startTournamentWorker } from './tournaments/tournament.service';
 import { registerCopyTrading } from './social/copy.service';
+import { startWalletDepositWorker } from './wallet/deposit.worker';
+import { closeEvmProviders } from './wallet/chains/evm.adapter';
 
 const log = createLogger('server');
 
@@ -34,6 +36,7 @@ async function main() {
   startDepositReconciler();
   startSignalEngine();
   startTournamentWorker();
+  startWalletDepositWorker();
 
   server.listen(env.PORT, () => log.info(`API ready on http://localhost:${env.PORT}  (env: ${env.NODE_ENV})`));
 
@@ -41,6 +44,7 @@ async function main() {
     log.info(`${signal} received, shutting down`);
     server.close();
     await marketHub.stop().catch(() => undefined);
+    await closeEvmProviders().catch(() => undefined);
     await disconnectMongo().catch(() => undefined);
     process.exit(0);
   };

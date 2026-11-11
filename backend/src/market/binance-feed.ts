@@ -17,6 +17,10 @@ export class BinanceFeed extends EventEmitter {
   private ws: WebSocket | null = null;
   private pending = new Map<string, { price: number; vol: number }>();
   private sampler: NodeJS.Timeout | null = null;
+  private restFallbackTimer: NodeJS.Timeout | null = null;
+  private reconnectTimer: NodeJS.Timeout | null = null;
+  private lastFallbackErrorAt = 0;
+  private restFallbackConnected = false;
   private retry = 0;
   private stopped = false;
   private byBinance = new Map<string, string>();
@@ -24,7 +28,8 @@ export class BinanceFeed extends EventEmitter {
   constructor(
     private readonly url: string,
     private symbols: FeedSymbol[],
-    private readonly sampleMs = 250,
+    private readonly restUrl: string,
+    private readonly sampleMs = 1000,
   ) {
     super();
   }
@@ -38,6 +43,10 @@ export class BinanceFeed extends EventEmitter {
   stop() {
     this.stopped = true;
     if (this.sampler) clearInterval(this.sampler);
+    if (this.restFallbackTimer) clearInterval(this.restFallbackTimer);
+    if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
+    this.restFallbackTimer = null;
+    this.reconnectTimer = null;
     this.ws?.terminate();
   }
 
@@ -54,7 +63,20 @@ export class BinanceFeed extends EventEmitter {
     this.ws = ws;
     ws.on('open', () => {
       this.retry = 0;
+      this.stopRestFallback();
       log.info(`connected (${this.symbols.length} symbols)`);
+    });
+    ws.on('unexpected-response', (_request, response) => {
+      let body = '';
+      response.on('data', (chunk: Buffer | string) => {
+        if (body.length < 300) body += chunk.toString().slice(0, 300 - body.length);
+      });
+      response.on('end', () => {
+        log.warn(`websocket handshake rejected: HTTP ${response.statusCode ?? 0}${body ? ` ${body}` : ''}`);
+      });
+      response.resume();
+      this.startRestFallback();
+      this.scheduleReconnect();
     });
     ws.on('message', (raw) => {
       try {
@@ -74,10 +96,58 @@ export class BinanceFeed extends EventEmitter {
   }
 
   private scheduleReconnect() {
-    if (this.stopped) return;
+    if (this.stopped || this.reconnectTimer) return;
+    this.startRestFallback();
     const delay = Math.min(30_000, 1000 * 2 ** this.retry++);
     log.warn(`disconnected, reconnecting in ${delay}ms`);
-    setTimeout(() => this.connect(), delay);
+    this.reconnectTimer = setTimeout(() => {
+      this.reconnectTimer = null;
+      this.connect();
+    }, delay);
+  }
+
+  private startRestFallback() {
+    if (this.stopped || this.restFallbackTimer || !this.restUrl) return;
+    log.warn('using REST market-data polling while WebSocket is unavailable');
+    void this.pollLatestPrices();
+    this.restFallbackTimer = setInterval(() => void this.pollLatestPrices(), 2000);
+  }
+
+  private stopRestFallback() {
+    if (this.restFallbackTimer) clearInterval(this.restFallbackTimer);
+    this.restFallbackTimer = null;
+    this.restFallbackConnected = false;
+  }
+
+  private async pollLatestPrices() {
+    if (this.stopped || !this.symbols.length) return;
+    const params = new URLSearchParams({
+      symbols: JSON.stringify(this.symbols.map((item) => item.binanceSymbol)),
+    });
+    try {
+      const response = await fetch(`${this.restUrl}/api/v3/ticker/price?${params}`, { signal: AbortSignal.timeout(5000) });
+      if (!response.ok) {
+        const details = (await response.text()).slice(0, 240);
+        throw new Error(`ticker ${response.status}${details ? `: ${details}` : ''}`);
+      }
+      const rows = (await response.json()) as Array<{ symbol: string; price: string }>;
+      const now = Date.now();
+      if (rows.length && !this.restFallbackConnected) {
+        this.restFallbackConnected = true;
+        log.info(`REST fallback connected (${rows.length} symbols)`);
+      }
+      for (const row of rows) {
+        const symbol = this.byBinance.get(row.symbol.toUpperCase());
+        const price = Number(row.price);
+        if (symbol && Number.isFinite(price) && price > 0) this.emit('tick', { symbol, price, vol: 0, ts: now });
+      }
+    } catch (e) {
+      const now = Date.now();
+      if (now - this.lastFallbackErrorAt >= 30_000) {
+        this.lastFallbackErrorAt = now;
+        log.warn(`REST market-data fallback failed: ${(e as Error).message}`);
+      }
+    }
   }
 
   private flush() {
@@ -93,7 +163,10 @@ export async function fetchKlines(restUrl: string, binanceSymbol: string, interv
   const qs = new URLSearchParams({ symbol: binanceSymbol, interval, limit: String(limit) });
   if (endTime) qs.set('endTime', String(endTime));
   const res = await fetch(`${restUrl}/api/v3/klines?${qs}`, { signal: AbortSignal.timeout(5000) });
-  if (!res.ok) throw new Error(`klines ${res.status}`);
+  if (!res.ok) {
+    const details = (await res.text()).slice(0, 240);
+    throw new Error(`klines ${res.status}${details ? `: ${details}` : ''}`);
+  }
   const rows = (await res.json()) as [number, string, string, string, string, string][];
   return rows.map((r) => ({
     time: Math.floor(r[0] / 1000),

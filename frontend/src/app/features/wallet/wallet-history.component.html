@@ -1,0 +1,56 @@
+<section class="wallet-page">
+  <header class="page-head">
+    <div><p class="eyebrow">Y2 WALLET</p><h1>Wallet activity</h1><p class="subhead">Review deposits, withdrawals, conversions, adjustments, and balance ledger entries.</p></div>
+    <a class="back-link" routerLink="../">← Wallet overview</a>
+  </header>
+
+  <div class="tabs" role="tablist" aria-label="Wallet history type">
+    <button type="button" role="tab" [attr.aria-selected]="tab() === 'activity'" [class.active]="tab() === 'activity'" (click)="selectTab('activity')">Activity</button>
+    <button type="button" role="tab" [attr.aria-selected]="tab() === 'ledger'" [class.active]="tab() === 'ledger'" (click)="selectTab('ledger')">Balance ledger</button>
+  </div>
+
+  @if (tab() === 'activity') {
+    <div class="filters" role="group" aria-label="Filter wallet activity">
+      <button type="button" [class.active]="filter() === 'all'" (click)="selectFilter('all')">All</button>
+      <button type="button" [class.active]="filter() === 'deposit'" (click)="selectFilter('deposit')">Deposits</button>
+      <button type="button" [class.active]="filter() === 'withdrawal'" (click)="selectFilter('withdrawal')">Withdrawals</button>
+      <button type="button" [class.active]="filter() === 'conversion'" (click)="selectFilter('conversion')">Conversions</button>
+    </div>
+  }
+
+  @if (loading()) {
+    <div class="state-card" role="status">Loading wallet activity…</div>
+  } @else if (error()) {
+    <div class="state-card error" role="alert"><b>History unavailable</b><p>{{ error() }}</p><button type="button" class="action-button" (click)="load()">Try again</button></div>
+  } @else if (!total()) {
+    <div class="state-card">No wallet activity yet. Your crypto transactions will appear here.</div>
+  } @else if (tab() === 'activity') {
+    <div class="activity-list">
+      @for (item of filteredActivity(); track item.id) {
+        <article class="activity-row">
+          <span class="activity-mark" [class]="'activity-mark ' + item.kind">{{ item.kind === 'deposit' ? '↓' : item.kind === 'withdrawal' ? '↑' : item.kind === 'conversion' ? '⇄' : '•' }}</span>
+          <div class="activity-main">
+            <div class="title-line"><strong>{{ label(item.kind) }}</strong><span class="status" [class]="'status ' + item.status">{{ item.status }}</span></div>
+            <p>{{ item.assetSymbol }}@if (item.networkCode) { <span> · {{ item.networkCode }}</span> }</p>
+            @if (item.detail) { <p>{{ item.detail }}</p> }
+            <small>{{ item.createdAt | date:'medium' }}</small>
+          </div>
+          <div class="activity-amount" [class.negative]="item.amount.startsWith('-')"><strong>{{ item.amount }}</strong><span>{{ item.assetSymbol }}</span></div>
+          @if (item.explorerTxUrl) { <a class="explorer" [href]="item.explorerTxUrl" target="_blank" rel="noopener noreferrer">Explorer ↗</a> }
+        </article>
+      }
+    </div>
+    @if (activity().length < total()) { <div class="load-more"><button type="button" class="action-button" [disabled]="loading()" (click)="loadMore()">{{ loading() ? 'Loading…' : 'Load more' }}</button></div> }
+  } @else {
+    <div class="activity-list">
+      @for (entry of ledger(); track entry.id) {
+        <article class="activity-row ledger-row">
+          <span class="activity-mark">≋</span>
+          <div class="activity-main"><div class="title-line"><strong>{{ entry.type }}</strong><span class="status completed">recorded</span></div><p>{{ entry.assetSymbol }} · {{ entry.refType }}</p><small>{{ entry.createdAt | date:'medium' }}</small></div>
+          <div class="activity-amount" [class.negative]="entry.amount.startsWith('-')"><strong>{{ entry.amount }}</strong><span>{{ entry.assetSymbol }} · balance {{ entry.balanceAfter }}</span></div>
+        </article>
+      }
+    </div>
+    @if (ledger().length < total()) { <div class="load-more"><button type="button" class="action-button" [disabled]="loading()" (click)="loadMore()">{{ loading() ? 'Loading…' : 'Load more' }}</button></div> }
+  }
+</section>

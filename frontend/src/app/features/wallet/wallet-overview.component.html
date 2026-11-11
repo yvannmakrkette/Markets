@@ -1,0 +1,48 @@
+<section class="wallet-page">
+  <header class="page-head">
+    <div>
+      <p class="eyebrow">Y2 WALLET</p>
+      <h1>Crypto wallet</h1>
+      <p class="subhead">View your balances and manage crypto activity.</p>
+    </div>
+    <a class="back-link" routerLink="history">View activity →</a>
+  </header>
+
+  @if (loading()) {
+    <div class="state-card" role="status">Loading your balances…</div>
+  } @else if (error()) {
+    <div class="state-card error" role="alert"><b>Balances unavailable</b><p>{{ error() }}</p><button type="button" class="action-button" (click)="load()">Try again</button></div>
+  } @else if (!balances().length) {
+    <div class="state-card">No crypto assets are configured yet.</div>
+  } @else {
+    <div class="balance-list">
+      @for (balance of balances(); track balance.assetSymbol) {
+        <article class="balance-card">
+          <div class="asset-heading">
+            <span class="coin-badge">{{ balance.assetSymbol.slice(0, 1) }}</span>
+            <div><h2>{{ balance.name }}</h2><p>{{ balance.assetSymbol }}</p></div>
+            @if (!balance.enabled) { <span class="status-tag">Unavailable</span> }
+          </div>
+          <div class="amounts">
+            <div><span>Available</span><strong>{{ balance.available }} <small>{{ balance.assetSymbol }}</small></strong></div>
+            <div><span>Locked</span><strong>{{ balance.locked }} <small>{{ balance.assetSymbol }}</small></strong></div>
+          </div>
+          <div class="actions">
+            @if (balance.networks.length) {
+              <a class="primary-action" [routerLink]="['deposit']" [queryParams]="{ asset: balance.assetSymbol }">Deposit</a>
+            } @else {
+              <button class="primary-action" type="button" disabled title="No deposit network is enabled">Deposit unavailable</button>
+            }
+            @if (balance.enabled) {
+              <a class="secondary-action" routerLink="withdraw">Withdraw</a>
+              <a class="secondary-action" routerLink="convert">Convert</a>
+            } @else {
+              <button class="secondary-action" type="button" disabled>Withdraw unavailable</button>
+              <button class="secondary-action" type="button" disabled>Convert unavailable</button>
+            }
+          </div>
+        </article>
+      }
+    </div>
+  }
+</section>

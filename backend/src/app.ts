@@ -14,6 +14,9 @@ import { bonusRouter, financeRouter } from './routes/finance.routes';
 import { paymentsRouter } from './routes/payments.routes';
 import { chatRouter, kycRouter, referralRouter, signalsRouter, socialRouter, tournamentRouter } from './routes/community.routes';
 import { adminRouter } from './routes/admin.routes';
+import { walletRouter } from './routes/wallet.routes';
+import { adminWalletRouter } from './routes/admin-wallet.routes';
+import './models/wallet'; // Register wallet collections and indexes with the shared MongoDB bootstrap.
 
 export const corsOrigins = env.CORS_ORIGINS.split(',').map((s) => s.trim()).filter(Boolean);
 
@@ -64,6 +67,7 @@ export function createApp() {
   app.use('/api/pending', pendingRouter);
   app.use('/api/cfd', cfdRouter);
   app.use('/api/finance', financeRouter);
+  app.use('/api/wallet', walletRouter);
   app.use('/api/bonuses', bonusRouter);
   app.use('/api/referrals', referralRouter);
   app.use('/api/kyc', kycRouter);
@@ -72,6 +76,7 @@ export function createApp() {
   app.use('/api/signals', signalsRouter);
   app.use('/api/social', socialRouter);
   app.use('/api/admin', adminRouter);
+  app.use('/api/admin/wallet', adminWalletRouter);
 
   app.use('/api', notFoundHandler);
   app.use(errorHandler);

@@ -1,0 +1,29 @@
+:host { display: block; }
+.wallet-page { width: min(100%, 1020px); margin: 0 auto; padding: clamp(18px, 4vw, 36px); color: var(--text); }
+.page-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; margin-bottom: 24px; }
+.eyebrow { margin: 0 0 8px; color: var(--brand-a); font-size: 11px; font-weight: 800; letter-spacing: .16em; }
+h1 { margin: 0; font-family: var(--font-head); font-size: clamp(27px, 4vw, 36px); }
+.subhead { margin: 8px 0 0; color: var(--muted); font-size: 14px; }
+.back-link { color: var(--brand-a); text-decoration: none; font-size: 13px; font-weight: 700; }
+.balance-list { display: grid; gap: 14px; }
+.balance-card, .state-card { border: 1px solid var(--border); border-radius: 18px; background: rgba(18, 24, 38, .82); box-shadow: 0 16px 40px rgba(0, 0, 0, .18); }
+.balance-card { padding: clamp(16px, 3vw, 24px); }
+.asset-heading { display: flex; align-items: center; gap: 12px; }
+.coin-badge { display: grid; place-items: center; width: 42px; height: 42px; flex: none; border-radius: 50%; background: linear-gradient(135deg, #00b3a4, #168df2); color: white; font-size: 19px; font-weight: 800; }
+.asset-heading h2 { margin: 0; font-size: 17px; }
+.asset-heading p { margin: 4px 0 0; color: var(--muted); font-size: 12px; }
+.status-tag { margin-left: auto; padding: 6px 9px; border-radius: 99px; background: rgba(255,255,255,.07); color: var(--muted); font-size: 11px; }
+.amounts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 18px 0; }
+.amounts div { display: grid; gap: 7px; padding: 14px; border-radius: 11px; background: rgba(255,255,255,.035); }
+.amounts span { color: var(--muted); font-size: 11px; }
+.amounts strong { overflow-wrap: anywhere; font-size: clamp(16px, 3vw, 22px); }
+.amounts small { color: var(--muted); font-size: 12px; }
+.actions { display: flex; flex-wrap: wrap; gap: 9px; }
+.actions a, .actions button, .action-button { display: inline-flex; justify-content: center; align-items: center; min-height: 39px; padding: 0 14px; border: 1px solid rgba(45,212,191,.3); border-radius: 9px; color: var(--brand-a); background: rgba(45,212,191,.1); text-decoration: none; font: inherit; font-size: 12px; font-weight: 750; }
+.actions .secondary-action { border-color: var(--border); color: var(--muted); background: rgba(255,255,255,.025); }
+.actions button:disabled { cursor: not-allowed; opacity: .6; }
+.state-card { padding: 24px; color: var(--muted); }
+.state-card.error { color: #fecaca; border-color: rgba(248,113,113,.42); }
+.state-card p { margin: 6px 0 14px; }
+.action-button { cursor: pointer; }
+@media (max-width: 520px) { .page-head { align-items: flex-start; flex-direction: column; } .amounts { grid-template-columns: 1fr; } }

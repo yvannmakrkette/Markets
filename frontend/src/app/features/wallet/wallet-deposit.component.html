@@ -1,0 +1,83 @@
+<section class="wallet-page">
+  <header class="page-head">
+    <div>
+      <p class="eyebrow">Y2 WALLET</p>
+      <h1>Deposit crypto</h1>
+      <p class="subhead">Choose an asset and network to get your personal deposit instructions.</p>
+    </div>
+    <a class="back-link" routerLink="/app/wallet"><app-icon name="chevron-left" [size]="17" /> Wallet overview</a>
+  </header>
+
+  <div class="selector-card" aria-label="Deposit asset and network">
+    <label>
+      <span>Asset</span>
+      <select aria-label="Deposit asset" [formControl]="assetControl">
+        @if (!assets().length) { <option value="">No assets available</option> }
+        @for (asset of assets(); track asset.symbol) { <option [value]="asset.symbol">{{ asset.name }} ({{ asset.symbol }})</option> }
+      </select>
+    </label>
+    <label>
+      <span>Network</span>
+      <select aria-label="Deposit network" [formControl]="networkControl" [disabled]="!networks().length">
+        @for (network of networks(); track network.code) { <option [value]="network.code">{{ network.code }}</option> }
+      </select>
+    </label>
+  </div>
+
+  @if (loadingAssets()) {
+    <div class="state-card" role="status">Loading wallet assets…</div>
+  } @else if (error()) {
+    <div class="state-card error" role="alert">
+      <b>Deposit instructions unavailable</b>
+      <p>{{ error() }}</p>
+      <button type="button" class="action-button" (click)="retry()">Try again</button>
+    </div>
+  } @else if (!assets().length) {
+    <div class="state-card">There are no enabled crypto deposit networks yet.</div>
+  } @else if (!networks().length) {
+    <div class="state-card">No enabled deposit networks are available for this asset.</div>
+  } @else if (loadingInstructions()) {
+    <div class="state-card" role="status">Loading secure deposit instructions…</div>
+  } @else if (instructions(); as details) {
+    <article class="deposit-card">
+      <div class="deposit-title">
+        <span class="coin-badge">{{ details.asset.symbol.slice(0, 1) }}</span>
+        <div><h2>{{ details.asset.name }}</h2><p>{{ details.network.code }} network</p></div>
+        <span class="status-tag">Deposit address</span>
+      </div>
+
+      <div class="instruction-layout">
+        <div class="qr-panel">
+          <qrcode [qrdata]="details.qrPayload" [width]="216" errorCorrectionLevel="M" [margin]="3" [alt]="'QR code for ' + details.asset.symbol + ' deposit instructions'" [ariaLabel]="'QR code for ' + details.asset.symbol + ' deposit instructions'" />
+          <span>Scan the account, then enter the required memo shown here</span>
+        </div>
+
+        <div class="instruction-details">
+          <label class="detail-label" for="deposit-account">Deposit account</label>
+          <div class="copy-field">
+            <code id="deposit-account">{{ details.address }}</code>
+            <button type="button" aria-label="Copy deposit account" (click)="copy(details.address ?? '', 'Deposit account')"><app-icon name="copy" [size]="17" /> Copy</button>
+          </div>
+
+          @if (details.memoRequired) {
+            <label class="detail-label memo-label" for="deposit-memo">Your deposit memo · required</label>
+            <div class="copy-field memo-field">
+              <code id="deposit-memo">{{ details.memo }}</code>
+              <button type="button" aria-label="Copy required deposit memo" (click)="copy(details.memo ?? '', 'Deposit memo')"><app-icon name="copy" [size]="17" /> Copy</button>
+            </div>
+          }
+
+          <div class="facts">
+            <div><span>Minimum deposit</span><b>{{ details.minimumDeposit }} {{ details.asset.symbol }}</b></div>
+            <div><span>Required confirmations</span><b>{{ details.network.confirmationsRequired }} irreversible confirmation{{ details.network.confirmationsRequired === 1 ? '' : 's' }}</b></div>
+          </div>
+
+          @for (warning of details.warnings; track warning) {
+            <div class="warning" role="note"><app-icon name="warning" [size]="19" /><strong>{{ warning }}</strong></div>
+          }
+          <p class="credit-note">Deposits are credited after the network confirms the transfer. Transfers with a missing or incorrect memo require manual review.</p>
+        </div>
+      </div>
+    </article>
+  }
+</section>

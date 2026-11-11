@@ -53,6 +53,19 @@ async function ensureCollections() {
         if (e.code !== 48) throw e; // 48 = NamespaceExists
       });
   }
+  // createCollection options only apply on first creation. Update the TTL on an existing
+  // time-series collection too, so operators can turn on bounded tick retention later.
+  if (env.TICK_RETENTION_DAYS > 0) {
+    try {
+      await mongoose.connection.db!.command({
+        collMod: Tick.collection.collectionName,
+        expireAfterSeconds: env.TICK_RETENTION_DAYS * 86400,
+      });
+    } catch (e) {
+      const err = e as { code?: number; message?: string };
+      log.warn(`could not apply tick retention (${err.message ?? 'unknown MongoDB error'}); check MongoDB time-series TTL support`);
+    }
+  }
   await Tick.collection.createIndex({ symbol: 1, ts: 1 });
   for (const m of Object.values(mongoose.models)) {
     if (m === Tick) continue;

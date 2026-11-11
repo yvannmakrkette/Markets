@@ -4,6 +4,7 @@
     <button class="icon-btn side-close" (click)="navOpen.set(false)" aria-label="Close menu"><app-icon name="close" [size]="18" /></button>
   </div>
   <div class="side-links">
+    <a class="wallet-admin-link" routerLink="/admin/wallet">Crypto wallet operations</a>
     @for (t of tabs; track t.id) {
       <button [class.on]="tab() === t.id" (click)="go(t.id)"><app-icon [name]="t.icon" [size]="20" /> {{ t.label }}</button>
     }

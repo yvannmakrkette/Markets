@@ -123,6 +123,28 @@ Generate a secret in PowerShell:
    npm run build
    pm2 start deploy/ecosystem.config.cjs && pm2 save && pm2 startup
    ```
+
+## 5. MongoDB migration and storage
+
+The backend samples Binance prices once per second and generates OTC prices once per second. Stored ticks expire after 30 days by default; user, trade, account, deposit, withdrawal, wallet, KYC metadata, and ledger collections do not use that expiry.
+
+Binance instruments use Binance's public market-data-only REST and WebSocket endpoints. If the WebSocket is unavailable, the backend falls back to polling REST prices. If `BINANCE_WS_URL` or `BINANCE_REST_URL` is set directly in Render, use the values in `backend/.env.example`; dashboard variables override code defaults.
+
+To copy application data to a separate MongoDB cluster, put the current cluster URI in `backend/.env` as `MONGO_URI` and the destination URI as `MIGRATION_NEW_URI`. Both URIs must point to the `y2markets` database, and the destination must be a different, empty cluster. Stop the live backend to prevent writes during the final copy. From `backend/`, review the collection counts with:
+
+```powershell
+npx tsx scripts/migrate-user-data.ts
+```
+
+Then run the copy:
+
+```powershell
+npx tsx scripts/migrate-user-data.ts --execute
+```
+
+The script copies every non-system collection except `ticks`, preserves document IDs and indexes, and leaves the source untouched. It refuses a non-empty destination; use `--resume` only after a partial migration. After checking the destination counts and app login/history, change the deployed service's `MONGO_URI` to the destination URI and restart it. Historical trade and wallet records remain available, while tick-by-tick chart replay older than the new cluster's retained tick window will not.
+
+KYC document records are copied, but any files referenced by those records must also be moved from the configured `UPLOAD_DIR` (or its persistent file store) separately.
    Key production values: `NODE_ENV=production`, `APP_URL=https://y2markets.site`, `API_PUBLIC_URL=https://y2markets.site`, `CORS_ORIGINS=https://y2markets.site`, `COOKIE_SECURE=true`.
 5. **Frontend:**
    ```bash

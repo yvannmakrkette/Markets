@@ -14,6 +14,7 @@ export const routes: Routes = [
       { path: 'trading', loadComponent: () => import('./features/trading/trading.component').then((m) => m.TradingComponent), title: 'Trading · Y2 Markets' },
       { path: 'cfd', loadComponent: () => import('./features/trading/cfd.component').then((m) => m.CfdComponent), title: 'CFD Trading · Y2 Markets' },
       { path: 'finance', loadChildren: () => import('./features/finance/finance.routes').then((m) => m.FINANCE_ROUTES) },
+      { path: 'wallet', loadChildren: () => import('./features/wallet/wallet.routes').then((m) => m.WALLET_ROUTES) },
       { path: 'profile', loadComponent: () => import('./features/profile/profile.component').then((m) => m.ProfileComponent), title: 'Profile · Y2 Markets' },
       { path: 'referrals', loadComponent: () => import('./features/referrals/referrals.component').then((m) => m.ReferralsComponent), title: 'Referrals · Y2 Markets' },
       { path: 'tournaments', loadComponent: () => import('./features/tournaments/tournaments.component').then((m) => m.TournamentsComponent), title: 'Tournaments · Y2 Markets' },
@@ -21,6 +22,10 @@ export const routes: Routes = [
       { path: 'help', loadComponent: () => import('./features/help/help.component').then((m) => m.HelpComponent), title: 'Help · Y2 Markets' },
     ],
   },
+  { path: 'wallet/deposit', pathMatch: 'full', redirectTo: 'app/wallet/deposit' },
+  { path: 'wallet/:page', pathMatch: 'full', redirectTo: 'app/wallet/:page' },
+  { path: 'wallet', pathMatch: 'full', redirectTo: 'app/wallet' },
+  { path: 'admin/wallet', canActivate: [adminGuard], loadComponent: () => import('./features/admin/admin-wallet.component').then((m) => m.AdminWalletComponent), title: 'Wallet operations · Y2 Markets' },
   {
     path: 'admin',
     canActivate: [adminGuard],

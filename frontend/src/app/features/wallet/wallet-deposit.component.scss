@@ -1,0 +1,58 @@
+:host { display: block; }
+
+.wallet-page {
+  width: min(100%, 1020px);
+  margin: 0 auto;
+  padding: clamp(18px, 4vw, 36px);
+  color: var(--text);
+}
+.page-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; margin-bottom: 24px; }
+.eyebrow { margin: 0 0 8px; color: var(--brand-a); font-size: 11px; font-weight: 800; letter-spacing: .16em; }
+h1 { margin: 0; font-family: var(--font-head); font-size: clamp(27px, 4vw, 36px); }
+.subhead { margin: 8px 0 0; color: var(--muted); font-size: 14px; }
+.back-link { display: inline-flex; align-items: center; gap: 8px; flex: none; color: var(--brand-a); text-decoration: none; font-weight: 700; font-size: 13px; }
+.selector-card, .deposit-card, .state-card { border: 1px solid var(--border); border-radius: 18px; background: rgba(18, 24, 38, .82); box-shadow: 0 16px 40px rgba(0, 0, 0, .18); }
+.selector-card { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; padding: 18px; margin-bottom: 18px; }
+.selector-card label { display: grid; gap: 8px; color: var(--muted); font-size: 12px; font-weight: 700; }
+.selector-card select { width: 100%; height: 48px; padding: 0 14px; border-radius: 11px; border: 1px solid var(--border-strong); background: #111827; color: var(--text); font: inherit; }
+.deposit-card { padding: clamp(18px, 3vw, 28px); }
+.deposit-title { display: flex; align-items: center; gap: 13px; padding-bottom: 20px; border-bottom: 1px solid var(--border); }
+.coin-badge { display: grid; place-items: center; width: 44px; height: 44px; flex: none; border-radius: 50%; background: linear-gradient(135deg, #00b3a4, #168df2); color: white; font-size: 20px; font-weight: 800; }
+.deposit-title h2 { margin: 0; font-size: 18px; }
+.deposit-title p { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
+.status-tag { margin-left: auto; padding: 7px 10px; border-radius: 99px; background: rgba(45, 212, 191, .1); color: var(--brand-a); font-size: 11px; font-weight: 700; }
+.instruction-layout { display: grid; grid-template-columns: minmax(220px, 270px) minmax(0, 1fr); gap: clamp(22px, 4vw, 40px); padding-top: 24px; }
+.qr-panel { display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 12px; padding: 20px 12px; border-radius: 14px; background: #f7f9fc; color: #475569; text-align: center; font-size: 11px; }
+.qr-panel qrcode { display: block; max-width: 100%; }
+.instruction-details { min-width: 0; }
+.detail-label { display: block; margin: 3px 0 8px; color: var(--muted); font-size: 11px; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; }
+.copy-field { display: flex; align-items: center; gap: 10px; padding: 8px; border: 1px solid var(--border-strong); border-radius: 12px; background: rgba(0, 0, 0, .2); }
+.copy-field code { min-width: 0; flex: 1; padding-left: 5px; overflow-wrap: anywhere; color: #e7edf7; font-size: 14px; }
+.copy-field button, .action-button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 38px; padding: 0 12px; border: 1px solid rgba(45, 212, 191, .36); border-radius: 9px; background: rgba(45, 212, 191, .11); color: var(--brand-a); font-weight: 750; cursor: pointer; }
+.memo-label { margin-top: 20px; color: #ffd889; }
+.memo-field { border-color: rgba(245, 184, 65, .48); background: rgba(245, 184, 65, .07); }
+.memo-field code { color: #fff1c2; font-size: 20px; font-weight: 800; letter-spacing: .12em; }
+.facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 20px 0; }
+.facts div { display: grid; gap: 6px; padding: 13px; border-radius: 10px; background: rgba(255, 255, 255, .035); }
+.facts span { color: var(--muted); font-size: 11px; }
+.facts b { font-size: 13px; }
+.warning { display: flex; align-items: flex-start; gap: 10px; margin: 10px 0; padding: 13px; border: 1px solid rgba(245, 184, 65, .42); border-radius: 11px; background: rgba(245, 184, 65, .1); color: #ffe49e; font-size: 13px; line-height: 1.5; }
+.warning app-icon { flex: none; color: #ffd166; }
+.credit-note { margin: 14px 0 0; color: var(--muted); font-size: 12px; line-height: 1.6; }
+.state-card { padding: 24px; color: var(--muted); }
+.state-card.error { color: #fecaca; border-color: rgba(248, 113, 113, .42); }
+.state-card p { margin: 6px 0 14px; }
+
+@media (max-width: 700px) {
+  .page-head { align-items: flex-start; flex-direction: column; }
+  .instruction-layout { grid-template-columns: 1fr; }
+  .qr-panel { max-width: 320px; width: 100%; margin: 0 auto; }
+}
+@media (max-width: 480px) {
+  .wallet-page { padding: 16px; }
+  .selector-card { grid-template-columns: 1fr; padding: 14px; }
+  .status-tag { display: none; }
+  .facts { grid-template-columns: 1fr; }
+  .copy-field code { font-size: 12px; }
+  .memo-field code { font-size: 16px; }
+}

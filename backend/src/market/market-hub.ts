@@ -12,17 +12,6 @@ const log = createLogger('market');
 const STALE_MS = 5000;
 const KLINE_INTERVALS: Record<number, string> = { 1: '1s', 60: '1m', 180: '3m', 300: '5m', 900: '15m', 3600: '1h' };
 
-const BINANCE_FALLBACK_CONFIG: Record<string, { basePrice: number; precision: number; volatility: number }> = {
-  BTCUSDT: { basePrice: 66500, precision: 2, volatility: 0.00035 },
-  ETHUSDT: { basePrice: 3450, precision: 2, volatility: 0.00045 },
-  SOLUSDT: { basePrice: 155, precision: 3, volatility: 0.0006 },
-  BNBUSDT: { basePrice: 585, precision: 2, volatility: 0.0004 },
-  XRPUSDT: { basePrice: 0.58, precision: 4, volatility: 0.0005 },
-  DOGEUSDT: { basePrice: 0.125, precision: 5, volatility: 0.0007 },
-  ADAUSDT: { basePrice: 0.45, precision: 4, volatility: 0.0005 },
-  LTCUSDT: { basePrice: 86.5, precision: 2, volatility: 0.0004 },
-};
-
 export interface SummaryRow {
   symbol: string;
   price: number;
@@ -35,7 +24,7 @@ export interface SummaryRow {
  * Emits 'tick' (StoredTick) for in-process consumers (settlement, pending orders, CFD, signals).
  */
 class MarketHub extends EventEmitter {
-  readonly otc = new OtcGenerator(env.OTC_SEED, 500);
+  readonly otc = new OtcGenerator(env.OTC_SEED, 1000);
   private binance: BinanceFeed | null = null;
   private assets = new Map<string, AssetT>();
   private dayOpen = new Map<string, { day: number; price: number }>();
@@ -56,6 +45,7 @@ class MarketHub extends EventEmitter {
       this.binance = new BinanceFeed(
         env.BINANCE_WS_URL,
         real.map((a) => ({ symbol: a.symbol, binanceSymbol: a.binanceSymbol! })),
+        env.BINANCE_REST_URL,
       );
       this.binance.on('tick', (t: { symbol: string; price: number; ts: number; vol: number }) => this.ingest(t.symbol, t.price, t.ts, t.vol));
       this.binance.start();
@@ -96,19 +86,6 @@ class MarketHub extends EventEmitter {
         log.info(`backfilled ${stored.length} ticks for ${a.symbol}`);
       }
       if (!a.enabled) this.otc.remove(a.symbol);
-    } else if (a.source === 'binance') {
-      const fb = BINANCE_FALLBACK_CONFIG[a.symbol] ?? { basePrice: 100, precision: a.precision, volatility: 0.0004 };
-      const last = recent[recent.length - 1] ?? (await tickStore.atOrBefore(a.symbol, now));
-      this.otc.upsert(
-        { symbol: a.symbol, basePrice: fb.basePrice, volatility: fb.volatility, meanReversion: 0.0004, precision: a.precision },
-        last?.price ?? fb.basePrice,
-      );
-      if (!last) {
-        const hist = this.otc.backfill(a.symbol, now - 60 * 60_000, now - 1000, 1000);
-        const stored = hist.map((h) => tickStore.add(h.symbol, h.price, h.ts, Math.round(10 + Math.random() * 20)));
-        if (stored[0]) this.dayOpen.set(a.symbol, { day: dayStart, price: stored[0].price });
-        log.info(`backfilled fallback history for ${a.symbol}`);
-      }
     }
   }
 
@@ -200,13 +177,12 @@ class MarketHub extends EventEmitter {
       merged = mergeCandles(k, merged);
     }
 
-    if (merged.length === 0) {
-      const fb = BINANCE_FALLBACK_CONFIG[symbol] ?? { basePrice: 100, precision: a.precision, volatility: 0.0004 };
+    if (merged.length === 0 && a.source === 'otc' && a.otc?.basePrice) {
       if (!this.otc.symbols().includes(symbol)) {
-        this.otc.upsert({ symbol, basePrice: fb.basePrice, volatility: fb.volatility, meanReversion: 0.0004, precision: a.precision });
+        this.otc.upsert({ symbol, basePrice: a.otc.basePrice, volatility: a.otc.volatility ?? 0.0001, meanReversion: a.otc.meanReversion ?? 0.0004, precision: a.precision });
       }
       const hist = this.otc.backfill(symbol, from, now, Math.min(tf * 1000, 5000));
-      merged = bucketTicks(hist.map((h) => ({ ...h, vol: Math.round(10 + Math.random() * 20) })), tf);
+      merged = bucketTicks(hist.map((h) => ({ ...h, vol: 0 })), tf);
     }
 
     return merged.slice(-limit);

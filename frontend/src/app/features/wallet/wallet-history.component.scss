@@ -1,0 +1,38 @@
+:host { display: block; }
+.wallet-page { width: min(100%, 1100px); margin: 0 auto; padding: clamp(18px, 4vw, 36px); color: var(--text); }
+.page-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; margin-bottom: 24px; }
+.eyebrow { margin: 0 0 8px; color: var(--brand-a); font-size: 11px; font-weight: 800; letter-spacing: .16em; }
+h1 { margin: 0; font-family: var(--font-head); font-size: clamp(27px, 4vw, 36px); }
+.subhead { margin: 8px 0 0; color: var(--muted); font-size: 14px; }
+.back-link { flex: none; color: var(--brand-a); text-decoration: none; font-size: 13px; font-weight: 700; }
+.tabs { display: flex; gap: 8px; margin-bottom: 14px; padding: 5px; width: fit-content; border: 1px solid var(--border); border-radius: 12px; background: rgba(18,24,38,.82); }
+.tabs button { min-height: 38px; padding: 0 14px; border: 0; border-radius: 8px; color: var(--muted); background: transparent; font: inherit; font-size: 12px; font-weight: 750; cursor: pointer; }
+.tabs button.active { color: var(--brand-a); background: rgba(45,212,191,.12); }
+.filters { display:flex; gap:6px; overflow:auto; margin:0 0 14px; }.filters button { flex:none; padding:8px 12px; border:1px solid var(--border); border-radius:99px; color:var(--muted); background:rgba(18,24,38,.6); font:inherit; font-size:11px; cursor:pointer; }.filters button.active { border-color:rgba(45,212,191,.4); color:var(--brand-a); background:rgba(45,212,191,.1); }
+.activity-list, .state-card { border: 1px solid var(--border); border-radius: 16px; background: rgba(18,24,38,.82); box-shadow: 0 16px 40px rgba(0,0,0,.18); }
+.activity-list { overflow: hidden; }
+.load-more { display: flex; justify-content: center; padding: 14px; }
+.activity-row { display: grid; grid-template-columns: 42px minmax(150px, 1fr) auto auto; align-items: center; gap: 14px; padding: 16px 18px; border-bottom: 1px solid var(--border); }
+.activity-row:last-child { border-bottom: 0; }
+.activity-mark { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 50%; color: var(--brand-a); background: rgba(45,212,191,.1); font-size: 20px; font-weight: 800; }
+.activity-mark.withdrawal { color: #fca5a5; background: rgba(248,113,113,.1); }
+.activity-mark.conversion { color: #93c5fd; background: rgba(59,130,246,.12); }
+.activity-main { min-width: 0; }
+.title-line { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
+.title-line strong { text-transform: capitalize; font-size: 13px; }
+.activity-main p { margin: 5px 0 0; color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
+.activity-main small { display: block; margin-top: 7px; color: var(--muted); font-size: 11px; }
+.status { padding: 4px 7px; border-radius: 99px; color: #fde68a; background: rgba(245,184,65,.1); font-size: 10px; text-transform: capitalize; }
+.status.credited, .status.completed { color: #6ee7b7; background: rgba(16,185,129,.1); }
+.status.rejected, .status.unmatched, .status.failed { color: #fca5a5; background: rgba(248,113,113,.1); }
+.activity-amount { display: grid; gap: 4px; text-align: right; }
+.activity-amount strong { font-size: 14px; font-variant-numeric: tabular-nums; }
+.activity-amount span { color: var(--muted); font-size: 10px; }
+.activity-amount.negative strong { color: #fca5a5; }
+.explorer { color: var(--brand-a); text-decoration: none; font-size: 11px; font-weight: 700; white-space: nowrap; }
+.state-card { padding: 24px; color: var(--muted); }
+.state-card.error { color: #fecaca; border-color: rgba(248,113,113,.42); }
+.state-card p { margin: 6px 0 14px; }
+.action-button { min-height: 38px; padding: 0 12px; border: 1px solid rgba(45,212,191,.36); border-radius: 9px; color: var(--brand-a); background: rgba(45,212,191,.11); font-weight: 750; cursor: pointer; }
+@media (max-width: 700px) { .page-head { align-items: flex-start; flex-direction: column; } .activity-row { grid-template-columns: 36px minmax(0,1fr) auto; gap: 10px; padding: 14px; } .activity-mark { width: 34px; height: 34px; } .explorer { grid-column: 2 / -1; } }
+@media (max-width: 430px) { .activity-row { grid-template-columns: 32px minmax(0,1fr); } .activity-amount { grid-column: 2; text-align: left; } .explorer { grid-column: 2; } }

@@ -28,5 +28,9 @@ services:
         generateValue: true
       - key: BINANCE_ENABLED
         value: "true"
+      - key: BINANCE_WS_URL
+        value: wss://data-stream.binance.vision/stream
+      - key: BINANCE_REST_URL
+        value: https://data-api.binance.vision
       - key: MPESA_ENV
         value: sandbox
