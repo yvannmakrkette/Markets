@@ -33,7 +33,8 @@ const schema = z.object({
   BINANCE_WS_URL: z.string().default('wss://data-stream.binance.vision/stream'),
   BINANCE_REST_URL: z.string().default('https://data-api.binance.vision'),
   // Price ticks are short-lived market data; user trades and ledger history are kept separately.
-  TICK_RETENTION_DAYS: z.coerce.number().int().nonnegative().default(30),
+  TICK_RETENTION_DAYS: z.coerce.number().int().min(1).default(1),
+  TICK_PERSIST_INTERVAL_MS: z.coerce.number().int().min(1000).max(60_000).default(5000),
   BREVO_API_KEY: optionalStr, // xkeysib-…: sends over Brevo's HTTPS API (preferred; works where SMTP ports are blocked)
   BREVO_API_URL: z.string().default('https://api.brevo.com'),
   SMTP_HOST: optionalStr,

@@ -32,5 +32,9 @@ services:
         value: wss://data-stream.binance.vision/stream
       - key: BINANCE_REST_URL
         value: https://data-api.binance.vision
+      - key: TICK_RETENTION_DAYS
+        value: "1"
+      - key: TICK_PERSIST_INTERVAL_MS
+        value: "5000"
       - key: MPESA_ENV
         value: sandbox

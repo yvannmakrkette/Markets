@@ -126,7 +126,7 @@ Generate a secret in PowerShell:
 
 ## 5. MongoDB migration and storage
 
-The backend samples Binance prices once per second and generates OTC prices once per second. Stored ticks expire after 30 days by default; user, trade, account, deposit, withdrawal, wallet, KYC metadata, and ledger collections do not use that expiry.
+The backend keeps one-second Binance and OTC prices in memory for live trading, while persisting historical tick samples every five seconds. Persisted ticks expire after one day by default; user, trade, account, deposit, withdrawal, wallet, KYC metadata, and ledger collections do not use that expiry. Ticks referenced directly by trade and CFD records are persisted even between history samples.
 
 Binance instruments use Binance's public market-data-only REST and WebSocket endpoints. If the WebSocket is unavailable, the backend falls back to polling REST prices. If `BINANCE_WS_URL` or `BINANCE_REST_URL` is set directly in Render, use the values in `backend/.env.example`; dashboard variables override code defaults.
 

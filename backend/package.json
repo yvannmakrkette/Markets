@@ -9,6 +9,7 @@
     "start:prod": "node dist/index.js",
     "typecheck": "tsc --noEmit",
     "seed": "tsx src/scripts/seed.ts",
+    "cleanup:ticks": "tsx scripts/cleanup-ticks.ts",
     "dev:wallet-deposit": "tsx src/scripts/dev-wallet-deposit.ts",
     "test": "vitest run",
     "smoke": "node scripts/smoke.mjs"

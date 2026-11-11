@@ -3,6 +3,7 @@ import { CfdOrder, CfdOrderT, CfdPosition, CfdT } from '../models/trade';
 import { Account, AccountT } from '../models/account';
 import { marketHub } from '../market/market-hub';
 import type { StoredTick } from '../market/tick-store';
+import { tickStore } from '../market/tick-store';
 import { emitAccounts, postEntry, withTxn } from '../services/ledger.service';
 import { AppError, badRequest, notFound } from '../lib/errors';
 import { toUser } from '../realtime/io';
@@ -51,6 +52,7 @@ export async function openCfd(userId: string, accountId: string, inp: { symbol: 
   if (acc.type === 'tournament') throw badRequest('CFD positions are not available on tournament accounts');
   const tick = marketHub.latest(inp.symbol);
   if (!tick || !marketHub.isFresh(inp.symbol)) throw badRequest('Market is not quoting right now', 'MARKET_STALE');
+  tickStore.persistReference(tick);
 
   const { spread = 0, leverage = 100, contractSize = 1 } = asset.cfd;
   const { bid, ask } = bidAsk(tick.price, spread);
@@ -84,6 +86,7 @@ export async function closeCfd(positionId: string, reason: CfdT['closeReason'], 
   if (!pos) throw notFound('Position not found or already closed');
   const tick = marketHub.latest(pos.symbol);
   if (!tick) throw badRequest('No price available', 'MARKET_STALE');
+  tickStore.persistReference(tick);
   const { exit, pnl: raw } = cfdPnl(pos, tick.price);
   const pnl = Math.max(-pos.margin, raw); // loss can never exceed the posted margin
   const closed = await withTxn(async (session) => {

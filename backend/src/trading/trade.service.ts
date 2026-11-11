@@ -66,6 +66,7 @@ export async function openTrade(inp: OpenTradeInput): Promise<{ trade: TradeT; c
 
   const tick = marketHub.latest(inp.symbol);
   if (!tick || !marketHub.isFresh(inp.symbol)) throw badRequest('Market is not quoting right now, try again shortly', 'MARKET_STALE');
+  tickStore.persistReference(tick);
 
   const tradeId = new Types.ObjectId();
   const openedAt = new Date();
@@ -144,6 +145,7 @@ export async function settleTrade(t: TradeT) {
     closeTick && closeTick.ts >= t.openedAt.getTime()
       ? closeTick
       : { id: t.openTickId, price: t.openPrice, ts: t.openedAt.getTime() }; // no newer tick: price unchanged
+  if (closeTick) tickStore.persistReference(closeTick);
 
   const user = await User.findById(t.userId, { role: 1, engineMode: 1, customWinRate: 1 }).lean<UserT>();
   const engine = await getTradingEngineConfig();

@@ -63,7 +63,8 @@ async function ensureCollections() {
       });
     } catch (e) {
       const err = e as { code?: number; message?: string };
-      log.warn(`could not apply tick retention (${err.message ?? 'unknown MongoDB error'}); check MongoDB time-series TTL support`);
+      log.error(`could not apply tick retention (${err.message ?? 'unknown MongoDB error'}); refusing to start without bounded tick storage`);
+      throw e;
     }
   }
   await Tick.collection.createIndex({ symbol: 1, ts: 1 });

@@ -1,6 +1,7 @@
 import { Types } from 'mongoose';
 import { Tick } from '../models/market';
 import { createLogger } from '../lib/logger';
+import { env } from '../config/env';
 
 const log = createLogger('ticks');
 
@@ -10,19 +11,25 @@ export interface StoredTick {
   price: number;
   ts: number; // ms epoch, strictly increasing per symbol
   vol: number;
+  persisted?: boolean;
+  queued?: boolean;
+  required?: boolean;
 }
 
 const MEMORY_MS = 20 * 60_000;
+const MAX_PENDING_TICKS = 10_000;
 
 /**
  * In-memory ring buffer of recent ticks per symbol + batched persistence to the time-series collection.
  * Tick ids are assigned here, before the DB write, so trades can reference the exact tick they used.
  */
-class TickStore {
+export class TickStore {
   private buffers = new Map<string, StoredTick[]>();
   private queue: StoredTick[] = [];
+  private lastPersistedAt = new Map<string, number>();
   private flushing = false;
   private timer: NodeJS.Timeout | null = null;
+  private lastQueueWarningAt = 0;
 
   add(symbol: string, price: number, ts: number, vol = 0, persist = true): StoredTick {
     let buf = this.buffers.get(symbol);
@@ -36,14 +43,54 @@ class TickStore {
       const cut = lowerBound(buf, ts - MEMORY_MS);
       buf.splice(0, cut);
     }
-    if (persist) this.queue.push(t);
+    const lastPersisted = this.lastPersistedAt.get(symbol);
+    if (persist && (lastPersisted === undefined || ts - lastPersisted >= env.TICK_PERSIST_INTERVAL_MS)) {
+      this.lastPersistedAt.set(symbol, ts);
+      this.enqueue(t, false);
+    }
     return t;
+  }
+
+  /** Ensure a tick referenced by a financial record is persisted even between sampled history points. */
+  persistReference(tick: StoredTick) {
+    if (tick.persisted) return;
+    if (tick.queued) {
+      tick.required = true;
+      return;
+    }
+    this.enqueue(tick, true);
+  }
+
+  private enqueue(tick: StoredTick, required: boolean) {
+    if (tick.persisted) return;
+    if (tick.queued) {
+      if (required) tick.required = true;
+      return;
+    }
+    if (required && this.queue.length >= MAX_PENDING_TICKS) {
+      const discardAt = this.queue.findIndex((queued) => !queued.required);
+      if (discardAt >= 0) {
+        const [discarded] = this.queue.splice(discardAt, 1);
+        if (discarded) discarded.queued = false;
+      }
+    }
+    if (!required && this.queue.length >= MAX_PENDING_TICKS) {
+      const now = Date.now();
+      if (now - this.lastQueueWarningAt >= 30_000) {
+        this.lastQueueWarningAt = now;
+        log.warn(`tick write queue reached ${MAX_PENDING_TICKS}; dropping sampled history ticks until MongoDB recovers`);
+      }
+      return;
+    }
+    tick.queued = true;
+    tick.required = required;
+    this.queue.push(tick);
   }
 
   /** Loads already-persisted ticks into memory (startup warm-up). */
   preload(symbol: string, ticks: StoredTick[]) {
     const buf = this.buffers.get(symbol) ?? [];
-    this.buffers.set(symbol, [...ticks, ...buf].sort((a, b) => a.ts - b.ts));
+    this.buffers.set(symbol, [...ticks.map((tick) => ({ ...tick, persisted: true })), ...buf].sort((a, b) => a.ts - b.ts));
   }
 
   latest(symbol: string): StoredTick | undefined {
@@ -65,7 +112,7 @@ class TickStore {
     const doc = await Tick.findOne({ symbol, ts: { $lte: new Date(at) } })
       .sort({ ts: -1 })
       .lean();
-    return doc ? { id: doc._id, symbol, price: doc.price, ts: doc.ts.getTime(), vol: doc.vol ?? 0 } : undefined;
+    return doc ? { id: doc._id, symbol, price: doc.price, ts: doc.ts.getTime(), vol: doc.vol ?? 0, persisted: true } : undefined;
   }
 
   range(symbol: string, from: number, to: number): StoredTick[] {
@@ -79,7 +126,7 @@ class TickStore {
       .sort({ ts: 1 })
       .limit(limit)
       .lean();
-    return docs.map((d) => ({ id: d._id, symbol, price: d.price, ts: d.ts.getTime(), vol: d.vol ?? 0 }));
+    return docs.map((d) => ({ id: d._id, symbol, price: d.price, ts: d.ts.getTime(), vol: d.vol ?? 0, persisted: true }));
   }
 
   /** Memory first; falls back to DB for anything older than the buffer. */
@@ -94,8 +141,8 @@ class TickStore {
     this.timer = setInterval(() => void this.flush(), intervalMs);
   }
 
-  async flush() {
-    if (this.flushing || !this.queue.length) return;
+  async flush(): Promise<boolean> {
+    if (this.flushing || !this.queue.length) return true;
     this.flushing = true;
     const batch = this.queue.splice(0, 5000);
     try {
@@ -103,9 +150,16 @@ class TickStore {
         batch.map((t) => ({ _id: t.id, ts: new Date(t.ts), symbol: t.symbol, price: t.price, vol: t.vol })),
         { ordered: false, lean: true },
       );
+      for (const tick of batch) {
+        tick.queued = false;
+        tick.persisted = true;
+        tick.required = false;
+      }
+      return true;
     } catch (e) {
       log.error(`failed to persist ${batch.length} ticks, re-queueing`, (e as Error).message);
       this.queue.unshift(...batch);
+      return false;
     } finally {
       this.flushing = false;
     }
@@ -113,7 +167,10 @@ class TickStore {
 
   async stop() {
     if (this.timer) clearInterval(this.timer);
-    while (this.queue.length) await this.flush();
+    for (let attempts = 0; this.queue.length && attempts < 3; attempts++) {
+      if (!(await this.flush())) break;
+    }
+    if (this.queue.length) log.warn(`leaving ${this.queue.length} queued ticks after MongoDB write failures during shutdown`);
   }
 }
 
